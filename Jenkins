@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('git download') {
+            steps {
+                echo 'git success'
+                git 'https://github.com/sunnyramagiri/k8s-jenkins-docker.git'
+            }
+        }
+        stage('docker build') {
+            steps {
+                script {
+                    echo 'docker build success'
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        sh 'docker build -t sunnyramagiri/node .'
+                    }
+                }
+            }
+        }
+        stage('docker run') {
+            steps {
+                script {
+                    echo 'docker run success'
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        sh 'docker run -d --name k8snodeps sunnyramagiri/node'
+                    }
+                }
+            }
+        }
+        stage('docker push') {
+            steps {
+                script {
+                    echo 'docker push success'
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        sh 'docker push sunnyramagiri/node'
+                    }
+                }
+            }
+        }
+        stage('deployment app to k8s') {
+            steps {
+                script {
+                    echo 'deploy to k8s success'
+                    kubernetesDeploy(configs: "deployment.yml", kubeconfigId: "k8sproject")
+                }
+            }
+        }
+    }
+}
+
